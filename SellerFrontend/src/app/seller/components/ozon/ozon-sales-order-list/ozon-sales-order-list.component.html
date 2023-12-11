@@ -1,0 +1,419 @@
+<p-toast></p-toast>
+<p-card header="Заказы Ozon">
+    <div class="justify-content-center">
+        <p-selectButton [options]="dateRangeOptions" [tabIndex]="dateRangeType" icon="pi pi-search"
+                        [(ngModel)]="dateRangeType"
+                        (onOptionClick)="changeReportDate()" optionLabel="name" optionValue="value"></p-selectButton>
+    </div>
+    <div class="justify-content-center mb-1" *ngIf="dateRangeType == dateRangeTypes.Custom">
+        <p-calendar [(ngModel)]="customDateRange" selectionMode="range" [selectOtherMonths]="true" placeholder="Период" [readonlyInput]="true"></p-calendar>
+
+        <p-button icon="pi pi-search" label="Найти отправления" (click)="changeReportDate()"></p-button>
+    </div>
+    <p-button styleClass="m-3" [icon]="isLoading ? 'pi pi-download' : ''" label="Загрузить отправления с Озон" *ngIf="dateRangeType !== undefined" (click)="importOrders()"></p-button>
+</p-card>
+<div class="card" *ngIf="getSummary() as summary">
+    <div class="grid">
+        <div class="col-12 md:col-4">
+            <div class="card text-right">
+                <div class="text-900 font-medium text-xl mb-3">
+                    <div class="text-500 text-center">Заказы</div>
+                    <div>
+                        <div class="flex justify-content-between">
+                            <span>Заказов</span>
+                            <span>{{ summary.totalOrderCount }}</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <span>Товаров</span>
+                        <span>{{ summary.totalProductCount }}</span>
+                    </div>
+                    <div>
+                        <div class="flex justify-content-between">
+                            <span>К выплате</span>
+                            <span *ngIf="summary.expectedPayout">~{{ summary.expectedPayout | number: '1.2-2' }}&#8381;</span>
+                            <span *ngIf="!summary.expectedPayout">-</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-content-between">
+                            <span>Сумма</span>
+                            <span>{{ summary.totalSum | number: '1.2-2' }}&#8381;</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 md:col-4">
+            <div class="card text-right">
+                <div class="text-900 font-medium text-xl mb-3">
+                    <div class="text-500 text-center">Возвраты</div>
+                    <div class="flex justify-content-between">
+                        <span>Возвратов</span>
+                        <span>{{ summary.returnProductCount }}</span>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <span>Платных возвратов</span>
+                        <span>{{ summary.paidReturnProductCount }}</span>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <span>Сумма</span>
+                        <span>{{ summary.returnSum | number: '1.2-2' }}&#8381;</span>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <span>% возвратов</span>
+                        <span>{{ (summary.finalizedProductCount ? (summary.returnProductCount / summary.finalizedProductCount * 100) : 0) | number: '1.1-1' }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 md:col-4">
+            <div class="card text-right">
+                <div class="text-900 font-medium text-xl mb-3">
+                    <div class="text-500 text-center">Выполненные заказы</div>
+                    <div>
+                        <div class="flex justify-content-between">
+                            <span>Заказов</span>
+                            <span>{{ summary.finalizedOrderCount }}</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <span>Товаров</span>
+                        <span>{{ summary.finalizedProductCount }}</span>
+                    </div>
+                    <div>
+                        <div class="flex justify-content-between">
+                            <span>К выплате</span>
+                            <span>{{ summary.finalizedSum | number: '1.2-2' }}&#8381;</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-content-between">
+                            <span>Сумма продаж</span>
+                            <span>{{ summary.finalizedSalesSum | number: '1.2-2' }}&#8381;</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p-table [value]="data" [loading]="loading" *ngIf="data" responsiveLayout="stack"
+             [paginator]="true" [showCurrentPageReport]="false" [rows]="8" [rowsPerPageOptions]="[8, 15, 30, 50]"
+             dataKey="iD" [tableStyle]="{  }">
+        <ng-template pTemplate="header">
+            <tr>
+                <th>
+                    Товар
+                    <p-columnFilter field="product" matchMode="intersects" display="menu" [showMatchModes]="false" [showOperator]="false" [showAddButton]="false">
+                        <ng-template pTemplate="header">
+                            <div class="px-3 pt-3 pb-0">
+                                <span class="font-bold">Артикулы</span>
+                            </div>
+                        </ng-template>
+                        <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                            <p-multiSelect [ngModel]="value" [filter]="false" [options]="productPackageIDs"
+                                           placeholder="Выбранные" (onChange)="filter($event.value)" />
+                        </ng-template>
+                    </p-columnFilter>
+                </th>
+                <th pSortableColumn="sum">Сумма <p-sortIcon field="sum"></p-sortIcon></th>
+                <th pSortableColumn="status">
+                    Статус <p-sortIcon field="status"></p-sortIcon>
+                    <p-columnFilter field="status" matchMode="intersects" display="menu" [showMatchModes]="false" [showOperator]="false" [showAddButton]="false">
+                        <ng-template pTemplate="header">
+                            <div class="px-3 pt-3 pb-0">
+                                <span class="font-bold">Статусы</span>
+                            </div>
+                        </ng-template>
+                        <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                            <p-multiSelect [ngModel]="value" optionValue="status" [filter]="false" [options]="orderStatuses"
+                                           placeholder="Выбранные" (onChange)="filter($event.value)" optionLabel="text">
+                            </p-multiSelect>
+                        </ng-template>
+                    </p-columnFilter>
+                </th>
+                <th>Направление</th>
+                <th pSortableColumn="date">Дата <p-sortIcon field="date"></p-sortIcon></th>
+                <th>
+                    № заказа
+                    <p-columnFilter field="ozonOrderNumber" matchMode="contains" display="menu" [showMatchModes]="false" [showOperator]="false"></p-columnFilter>
+                </th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-order let-expanded="expanded">
+            <tr [pRowToggler]="order">
+                <td>
+                    <div>
+                        <span class="p-column-title font-bold">Товар</span>
+                        <div>
+                            <div *ngFor="let product of order.products">
+                                {{ product.productPackageID }} x {{ product.quantity }}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <span class="p-column-title">Сумма</span>
+                        <div>
+                            {{ order.sum | number: '1.2-2' }}&#8381;
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <span class="p-column-title">Статус</span>
+                        <div *ngFor="let status of order.statuses">
+                            <p-tag [value]="status.statusText" [severity]="status.tag"></p-tag>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <span class="p-column-title">Направление</span>
+                        <div *ngFor="let direction of order.directions">
+                            <ng-container *ngIf="direction.from">
+                                <p-tag [value]="direction.from" severity="info" icon="pi pi-send"></p-tag>
+                                <br />
+                            </ng-container>
+                            <p-tag [value]="to" *ngFor="let to of direction.to" severity="success" icon="pi pi-box"></p-tag>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <span class="p-column-title">Дата</span>
+                        <div>
+                            {{ order.date | date:'y-MM-dd HH:mm' }}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>
+                        <span class="p-column-title">№ заказа</span>
+                        <div>
+                            {{ order.ozonOrderNumber }}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="rowexpansion" let-order>
+            <ng-container *ngIf="order.postings?.length">
+                <tr>
+                    <td colspan="6">
+                        <h5>Состав заказа</h5>
+                    </td>
+                </tr>
+                <ng-container *ngFor="let posting of order.postings">
+                    <tr>
+                        <td colspan="6" class="text-left justify-content-start">
+                            <p-button [label]="'Отправление № ' + posting.postingNumber" [cdkCopyToClipboard]="posting.postingNumber" styleClass="p-button-secondary p-button-text" />
+                            <p-tag [value]="posting.statusText" [severity]="posting.statusTag" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6">
+                            <p-table [value]="posting.orderItems" responsiveLayout="stack" [breakpoint]="'960px'" [tableStyle]="{'min-width': '50rem'}">
+                                <ng-template pTemplate="header">
+                                    <tr>
+                                        <th>Артикул</th>
+                                        <th>Цена</th>
+                                        <th>Количество</th>
+                                        <th>Наименование</th>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="body" let-orderItem>
+                                    <tr>
+                                        <td>
+                                            <div>
+                                                <span class="p-column-title font-bold">Артикул</span>
+                                                <div>
+                                                    {{ orderItem.product.productPackageID }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <span class="p-column-title font-bold">Цена</span>
+                                                <div>
+                                                    {{ orderItem.price | number: '1.2-2' }}&#8381;
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <span class="p-column-title font-bold">Количество</span>
+                                                <div>
+                                                    {{ orderItem.quantity }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <span class="p-column-title font-bold">Наименование</span>
+                                                <div>
+                                                    {{ orderItem.product.name }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </ng-template>
+                            </p-table>
+                        </td>
+                    </tr>
+                    <ng-container *ngIf="posting.operations?.length">
+                        <tr>
+                            <td colspan="6">
+                                <h5>Операции по отправлению</h5>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="6">
+                                <p-table [value]="posting.operations" responsiveLayout="stack" [breakpoint]="'960px'" [tableStyle]="{'min-width': '50rem'}">
+                                    <ng-template pTemplate="header">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Дата</th>
+                                            <th>Сумма</th>
+                                            <th>Комиссия</th>
+                                            <th>Тип операции</th>
+                                            <th>Тип начисления</th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="body" let-operation>
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <span class="p-column-title font-bold">ID</span>
+                                                    <div>
+                                                        {{ operation.iD }}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <span class="p-column-title font-bold">Дата</span>
+                                                    <div>
+                                                        {{ operation.date | date:'y-MM-dd HH:mm' }}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <span class="p-column-title font-bold">Сумма</span>
+                                                    <div>
+                                                        {{ operation.amount | number: '1.2-2' }}&#8381;
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <span class="p-column-title font-bold">Комиссия</span>
+                                                    <div>
+                                                        {{ operation.saleCommission | number: '1.2-2' }}&#8381;
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <span class="p-column-title font-bold">Тип операции</span>
+                                                    <div>
+                                                        {{ getOperationTypeText(operation.operationType) }}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <span class="p-column-title font-bold">Тип начисления</span>
+                                                    <div>
+                                                        {{ getTransactionTypeText(operation.accrualType) }}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                                </p-table>
+                            </td>
+                        </tr>
+                    </ng-container>
+                </ng-container>
+            </ng-container>
+            <ng-container *ngIf="order.orderOperations?.length">
+                <tr>
+                    <td colspan="6">
+                        <h5>Операции по заказу</h5>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6">
+                        <p-table [value]="order.orderOperations" dataKey="iD" responsiveLayout="stack" [breakpoint]="'960px'" [tableStyle]="{'min-width': '50rem'}">
+                            <ng-template pTemplate="header">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Дата</th>
+                                    <th>Сумма</th>
+                                    <th>Комиссия</th>
+                                    <th>Тип операции</th>
+                                    <th>Тип начисления</th>
+                                </tr>
+                            </ng-template>
+                            <ng-template pTemplate="body" let-operation>
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <span class="p-column-title font-bold">ID</span>
+                                            <div>
+                                                {{ operation.iD }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="p-column-title font-bold">Дата</span>
+                                            <div>
+                                                {{ operation.date | date:'y-MM-dd HH:mm' }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="p-column-title font-bold">Сумма</span>
+                                            <div>
+                                                {{ operation.amount | number: '1.2-2' }}&#8381;
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="p-column-title font-bold">Комиссия</span>
+                                            <div>
+                                                {{ operation.saleCommission | number: '1.2-2' }}&#8381;
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="p-column-title font-bold">Тип операции</span>
+                                            <div>
+                                                {{ getOperationTypeText(operation.operationType) }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="p-column-title font-bold">Тип начисления</span>
+                                            <div>
+                                                {{ getTransactionTypeText(operation.accrualType) }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+                    </td>
+                </tr>
+            </ng-container>
+        </ng-template>
+    </p-table>
+</div>

@@ -1,0 +1,42 @@
+<p-toast></p-toast>
+<h1>Закупки</h1>
+<p-button [routerLink]="['/purchase/edit']">Новая</p-button>
+<p-table [value]="data"
+         *ngIf="data"
+         [lazy]="true"
+         dataKey="iD"
+         [tableStyle]="{ 'min-width': '75rem' }"
+         [paginator]="true"
+         [rows]="10"
+         [rowsPerPageOptions]="[10, 25, 50]"
+         [totalRecords]="totalRecords"
+         [loading]="loading"
+         (onLazyLoad)="onDataLazyLoad($event)">
+    <ng-template pTemplate="header" let-columns>
+        <tr>
+            <th>Наименование</th>
+            <th pSortableColumn="name">Дата <p-sortIcon field="date"></p-sortIcon></th>
+            <th>Статус</th>
+            <th>Товары</th>
+            <th></th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-batch let-expanded="expanded">
+        <tr>
+            <td>{{batch.name}}</td>
+            <td>{{batch.date | date: 'y-MM-dd HH:mm'}}</td>
+            <td>{{batch.status}}</td>
+            <td>
+                <ul>
+                    <li *ngFor="let product of batch.products">
+                        {{ product.name }}
+                    </li>
+                </ul>
+            </td>
+            <td>
+                <p-button icon="pi pi-dollar" [routerLink]="['summary', {id: batch.iD}]"></p-button>
+                <p-button icon="pi pi-pencil" [routerLink]="['edit', {id: batch.iD}]"></p-button>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>

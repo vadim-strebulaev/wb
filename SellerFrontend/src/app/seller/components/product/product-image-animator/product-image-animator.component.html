@@ -1,0 +1,48 @@
+<p-toast></p-toast>
+<p-fileUpload [showUploadButton]="false" multiple="true" chooseLabel="Выбрать картинки" [disabled]="recording"
+              accept="image/*" [showCancelButton]="false" (onSelect)="onImagesSelected($event)">
+    <ng-template let-file pTemplate="file">
+    </ng-template>
+    <ng-template pTemplate="content" let-files *ngIf="false"></ng-template>
+</p-fileUpload>
+<div class="card flex flex-wrap gap-3 p-fluid">
+    <div class="flex-auto">
+        <label class="mb-2 block font-bold" for="width">Ширина</label>
+        <p-inputNumber [(ngModel)]="width" inputId="width" [disabled]="!recordButtonEnabled" />
+    </div>
+    <div class="flex-auto">
+        <label class="mb-2 block font-bold" for="height">Высота</label>
+        <p-inputNumber [(ngModel)]="height" inputId="height" [disabled]="!recordButtonEnabled" />
+    </div>
+    <div class="flex-auto">
+        <label class="mb-2 block font-bold" for="animationDuration">Длительность анимации</label>
+        <p-inputNumber [(ngModel)]="animationDuration" inputId="animationDuration" [step]="0.1" [maxFractionDigits]="2" [disabled]="!recordButtonEnabled" />
+    </div>
+    <div class="flex-auto">
+        <label class="mb-2 block font-bold" for="exposureDuration">Длительность показа</label>
+        <p-inputNumber [(ngModel)]="exposureDuration" inputId="exposureDuration" [step]="0.1" [maxFractionDigits]="2" [disabled]="!recordButtonEnabled" />
+    </div>
+    <div class="flex-auto">
+        <label class="mb-2 block font-bold" for="frameRate">Fps</label>
+        <p-inputNumber [(ngModel)]="frameRate" inputId="frameRate" [disabled]="!recordButtonEnabled" />
+    </div>
+    <div class="flex-auto">
+        <label class="mb-2 block font-bold" for="duration">Длительность ролика</label>
+        <p-inputNumber [ngModel]="duration" inputId="duration" [maxFractionDigits]="2" [disabled]="true" />
+    </div>
+</div>
+<div class="card">
+    <p-button label="Сгенерировать видео" (click)="generateVideo()" [disabled]="!recordButtonEnabled"></p-button>
+    <div class="flex">
+        <div *ngIf="images" style="max-width: 300px">
+            <svg id="preview" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" version="1.1" *ngIf="getAnimation() as animation">
+                <animate attributeName="viewBox" [attr.values]="animation.values" [attr.keyTimes]="animation.keyTimes.join(';')" begin="0s" [attr.dur]="duration" [attr.repeatCount]="recording ? '1' : 'indefinite'" />
+                <ng-container *ngFor="let image of images; index as index">
+                    <image [attr.href]="image.image" [attr.x]="index * width" [attr.width]="width" [attr.height]="height" />
+                </ng-container>
+                <image [attr.href]="images[0].image" [attr.x]="images.length * width" [attr.width]="width" [attr.height]="height" />
+            </svg>
+        </div>
+        <div id="video"></div>
+    </div>
+</div>

@@ -1,0 +1,99 @@
+<p-fileUpload [showUploadButton]="false" multiple="true" chooseLabel="Выбрать шаблоны" accept="image/svg+xml" [showCancelButton]="false" (onSelect)="onTemplatesSelected($event)">
+    <ng-template let-file pTemplate="file">
+    </ng-template>
+    <ng-template pTemplate="content" let-files *ngIf="false"></ng-template>
+</p-fileUpload>
+<p-fileUpload [showUploadButton]="false" chooseLabel="Загрузить датасет" accept="application/json" [showCancelButton]="false" (onSelect)="onDatasetSelected($event)">
+    <ng-template let-file pTemplate="file">
+    </ng-template>
+    <ng-template pTemplate="content" let-files *ngIf="false"></ng-template>
+</p-fileUpload>
+<p-button styleClass="m-3" label="Добавить картинку" icon="pi-add" (click)="addImage()" [disabled]="!templateFiles.length"></p-button>
+<a [href]="dataset" [download]="activeImage.name + '.json'" class="p-button" *ngIf="!!dataset">Скачать датасет</a>
+
+<table width="100%" *ngIf="activeImage" class="text-center">
+    <tbody class="vertical-align-top">
+        <tr>
+            <td width="20%">
+                <h5>Картинки</h5>
+                <p-listbox [options]="activeImage.imageFields" [(ngModel)]="activeImageField" [listStyle]="{ 'max-height': '150px' }" [style]="{ width: '100%' }">
+                    <ng-template let-item pTemplate="item">
+                        <div class="flex align-items-center gap-2">
+                            <p-button [disabled]="checkFieldUnchanged(activeImage, item)" styleClass="p-button-sm p-colorpicker-preview p-button-icon-only" icon="pi pi-undo" (click)="undoField(item)"></p-button>
+                            <p-fileUpload [showUploadButton]="false" chooseLabel=" "
+                                          chooseIcon="pi pi-file-edit" chooseStyleClass="p-button-sm p-button-icon-only"
+                                          styleClass="flex"
+                                          accept="image/*" [showCancelButton]="false"
+                                          (onSelect)="onImageSelected(activeImage, activeImageField.name, $event)">
+                                <ng-template pTemplate="file"></ng-template>
+                            </p-fileUpload>
+                            <img [src]="activeImage.values[item.name]" style="max-width: 40px; max-height: 40px; width: 100%" />
+                            <div>{{ item.name }}</div>
+                        </div>
+                    </ng-template>
+                </p-listbox>
+                <h5>Цвета</h5>
+                <p-listbox [options]="activeImage.colorFields" [(ngModel)]="activeColorField" [listStyle]="{ 'max-height': '150px' }" [style]="{ width: '100%' }">
+                    <ng-template let-item pTemplate="item">
+                        <div class="flex align-items-center gap-2">
+                            <p-button [disabled]="checkFieldUnchanged(activeImage, item)" styleClass="p-button-sm p-colorpicker-preview p-button-icon-only" icon="pi pi-undo" (click)="undoField(item)"></p-button>
+                            <p-colorPicker [(ngModel)]="activeImage.values[item.name]" appendTo="body"
+                                           (onChange)="onColorFieldUpdated(activeImage, item.name, $event)" />
+                            <div>{{ item.name }}</div>
+                        </div>
+                    </ng-template>
+                </p-listbox>
+                <h5>Видимость</h5>
+                <p-listbox [options]="activeImage.visibilityFields" [(ngModel)]="activeVisibilityField" [listStyle]="{ 'max-height': '150px' }" [style]="{ width: '100%' }">
+                    <ng-template let-item pTemplate="item">
+                        <div class="flex align-items-center gap-2">
+                            <p-button [disabled]="checkFieldUnchanged(activeImage, item)" styleClass="p-button-sm p-colorpicker-preview p-button-icon-only" icon="pi pi-undo" (click)="undoField(item)"></p-button>
+                            <p-checkbox [(ngModel)]="activeImage.values[item.name]" [name]="item.name" binary="true" trueValue="normal" falseValue="none" (onChange)="onImageUpdate(activeImage)"></p-checkbox>
+                            <div>{{ item.name }}</div>
+                        </div>
+                    </ng-template>
+                </p-listbox>
+            </td>
+            <td>
+                <h2>{{ activeImage.name }}</h2>
+                <a [href]="activeImage.png" [download]="activeImage.name + '.png'">Скачать картинку</a>
+                <p-galleria [(value)]="images" [numVisible]="5"
+                            [showItemNavigatorsOnHover]="true" [showItemNavigators]="true"
+                            [circular]="true"
+                            [(activeIndex)]="activeImageIndex">
+                    <ng-template pTemplate="item" let-item>
+                        <img [src]="item.png" style="width: 100%; max-width: 500px; display: block;" />
+                    </ng-template>
+                    <ng-template pTemplate="thumbnail" let-item>
+                        <div class="grid grid-nogutter justify-content-center">
+                            <img [src]="item.png" style="max-height: 50px; max-width: 50px" />
+                        </div>
+                    </ng-template>
+                </p-galleria>
+            <td width="20%">
+                <h5>Тексты</h5>
+                <p-listbox [options]="activeImage.textFields" [(ngModel)]="activeTextField" [listStyle]="{ 'max-height': '150px' }" [style]="{ width: '100%' }">
+                    <ng-template let-item pTemplate="item">
+                        <p-button [disabled]="checkFieldUnchanged(activeImage, item)" size="small" icon="pi pi-undo" (click)="undoField(item)"></p-button>
+                        <input type="text" class="p-inputtext-sm" pInputText [(ngModel)]="activeImage.values[item.name]" [placeholder]="item.name" (change)="onImageUpdate(activeImage)" />
+                    </ng-template>
+                </p-listbox>
+                <h5>Размеры</h5>
+                <div class="card">
+                    <p-listbox [options]="activeImage.numberFields" [(ngModel)]="activeNumberField" [listStyle]="{ 'max-height': '150px' }" [style]="{ width: '100%' }">
+                        <ng-template let-item pTemplate="item">
+                            <div class="flex flex-column gap-2">
+                                <label [htmlFor]="item.name">{{item.name}}</label>
+                                <div class="p-inputgroup">
+                                    <p-button [disabled]="checkFieldUnchanged(activeImage, item)" size="small" icon="pi pi-undo" (click)="undoField(item)"></p-button>
+                                    <p-inputNumber [inputId]="item.name" [showButtons]="true"
+                                                   [maxFractionDigits]="1" [(ngModel)]="activeImage.values[item.name]" [placeholder]="item.name" (onInput)="onImageUpdate(activeImage)" />
+                                </div>
+                            </div>
+                        </ng-template>
+                    </p-listbox>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>

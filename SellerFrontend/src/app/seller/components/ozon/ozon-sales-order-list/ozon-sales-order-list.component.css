@@ -1,0 +1,14 @@
+@media (min-width: 961px) {
+    .p-column-title {
+        display: none;
+    }
+}
+@media (max-width: 960px) {
+    .p-column-title {
+        display: block;
+    }
+
+    .p-datatable-tbody > tr > td > div {
+        display: block;
+    }
+}

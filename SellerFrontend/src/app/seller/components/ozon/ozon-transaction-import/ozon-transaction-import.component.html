@@ -1,0 +1,8 @@
+<p-toast></p-toast>
+<p-card header="Импорт транзакций с Озон">
+    <p class="m-0">
+        <p-calendar [(ngModel)]="customDateRange" selectionMode="range" placeholder="Период" [readonlyInput]="true"></p-calendar>
+        <br />
+        <button pButton pRipple type="button" (click)="importTransactions()" label="Импортировать транзакции"></button>
+    </p>
+</p-card>

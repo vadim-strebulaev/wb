@@ -1,0 +1,355 @@
+<p-toast></p-toast>
+<div class="card" *ngIf="calculation">
+    <h5>Расчёт доходности по артикулу</h5>
+    <span class="p-float-label">
+        <input id="productName" [(ngModel)]="calculation.name" type="text" pInputText class="w-full md:w-30rem mb-5" style="padding: 1rem">
+        <label for="productName" class="font-bold">Наименование расчёта</label>
+    </span>
+    <div>
+        <p-button icon="pi pi-save" label="Сохранить" (click)="savePurchaseBatch()"></p-button>
+    </div>
+    <p-tabView styleClass="tabview-custom">
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <i class="pi pi-shopping-cart pi-fw"></i>
+                <span>Закупка</span>
+            </ng-template>
+            <ng-template pTemplate="body">
+                <div class="card">
+                    <p-table [value]="calculation.items" *ngIf="calculation.items.length">
+                        <ng-template pTemplate="header">
+                            <tr>
+                                <th width="10%"></th>
+                                <th width="10%">ID</th>
+                                <th>Наименование</th>
+                                <th width="10%">Количество</th>
+                                <th width="10%">Закупочная цена</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-item let-expanded="expanded" let-rowIndex="rowIndex">
+                            <tr>
+                                <td>
+                                    <p-button icon="pi pi-trash" (click)="removeItem(calculation.items, rowIndex)"></p-button>
+                                </td>
+                                <td>{{ item.productID }}</td>
+                                <td>{{ item.product.name }}</td>
+                                <td [pEditableColumn]="item.count" pEditableColumnField="count" class="text-right">
+                                    <p-cellEditor>
+                                        <ng-template pTemplate="input">
+                                            <p-inputNumber [useGrouping]="false" [(ngModel)]="item.count" />
+                                        </ng-template>
+                                        <ng-template pTemplate="output">
+                                            {{ item.count }}
+                                        </ng-template>
+                                    </p-cellEditor>
+                                </td>
+                                <td [pEditableColumn]="item.price" pEditableColumnField="price" class="text-right">
+                                    <p-cellEditor>
+                                        <ng-template pTemplate="input">
+                                            <p-inputNumber [useGrouping]="false" [(ngModel)]="item.price" [maxFractionDigits]="2" />
+                                        </ng-template>
+                                        <ng-template pTemplate="output">
+                                            {{ item.price }}
+                                        </ng-template>
+                                    </p-cellEditor>
+                                </td>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="footer">
+                            <tr>
+                                <td colspan="3" class="text-right">Итого:</td>
+                                <td class="text-right">
+                                    {{ calculationTotalProductCount }}
+                                </td>
+                                <td class="text-right">
+                                    {{ calculationTotalSum }}
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                    <p-autoComplete #productAutocomplete styleClass="mb-3" [suggestions]="products | async" field="name"
+                                    [minLength]="3" placeholder="Поиск товара"
+                                    (completeMethod)="findProductsByName($event)"
+                                    (onSelect)="addProduct($event)">
+                        <ng-template let-item pTemplate="item">
+                            <div class="flex align-items-center gap-2">
+                                <div>{{ item.iD }}: {{ item.name }}</div>
+                            </div>
+                        </ng-template>
+                        <ng-template let-item pTemplate="selectedItem">Поиск товара</ng-template>
+                    </p-autoComplete>
+                </div>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <i class="pi pi-box pi-fw"></i>
+                <span>Типоформаты</span>
+            </ng-template>
+            <div class="card">
+                <p-dropdown #productPackageDropdown [ngModel]="selectedProduct" (onChange)="addSalesItem($event.value)" styleClass="m-3"
+                            [options]="calculation.items" appendTo="body" [autoDisplayFirst]="false"
+                            placeholder="Добавить артикул" optionGroupChildren="product.packages" [group]="true">
+                    <ng-template let-item pTemplate="group">
+                        <div class="flex align-items-center gap-2">
+                            <div>{{ item.product.iD }}: {{ item.product.name }}</div>
+                        </div>
+                    </ng-template>
+                    <ng-template let-item pTemplate="item">
+                        <div class="flex align-items-center gap-2">
+                            <div>{{ item.iD }}: {{ item.name }}</div>
+                        </div>
+                    </ng-template>
+                    <ng-template let-item pTemplate="selectedItem">Добавить артикул</ng-template>
+                </p-dropdown>
+                <p-accordion>
+                    <ng-container *ngFor="let batchItem of calculation.items">
+                        <ng-container *ngFor="let salesItem of batchItem.salesItems; index as rowIndex">
+                            <p-accordionTab transitionOptions="50ms">
+                                <ng-template pTemplate="header">
+                                    Артикул: {{ salesItem.productPackage.iD }}, {{ salesItem.productPackage.productCount }}шт, {{ salesItem.name}}
+                                </ng-template>
+                                <ng-template pTemplate="content">
+                                    <div class="card m-2">
+                                        <p-button label="Удалить типоформат" styleClass="mb-3" icon="pi pi-trash" (click)="removeItem(batchItem.salesItems, rowIndex)" />
+                                        <h5>Оформление упаковки</h5>
+                                        <div class="grid">
+                                            <div class="col xs:col-12">
+                                                <div>
+                                                    <label for="name">Наименование</label>
+                                                </div>
+                                                <input maxlength="100" pInputText inputId="name" [(ngModel)]="salesItem.name" />
+                                            </div>
+                                            <div class="col xs:col-12">
+                                                <label for="volume">Объём</label>
+                                                <div class="p-inputgroup">
+                                                    <p-inputNumber inputId="volume" [useGrouping]="false"
+                                                                   [minFractionDigits]="0" [maxFractionDigits]="1"
+                                                                   [(ngModel)]="salesItem.volume" />
+                                                    <span class="p-inputgroup-addon">л</span>
+                                                </div>
+                                            </div>
+                                            <div class="col xs:col-12">
+                                                <label for="packagingPrice">Стоимость фасовки</label>
+                                                <div class="p-inputgroup">
+                                                    <p-inputNumber inputId="packagingPrice" [useGrouping]="false"
+                                                                   [minFractionDigits]="0" [maxFractionDigits]="2"
+                                                                   [(ngModel)]="salesItem.packagingPrice" />
+                                                    <span class="p-inputgroup-addon">&#8381;</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p-table [value]="salesItem.salesItemPackages" *ngIf="salesItem.salesItemPackages?.length">
+                                            <ng-template pTemplate="header">
+                                                <tr>
+                                                    <th>Тип упаковки</th>
+                                                    <th>Количество</th>
+                                                    <th>Цена упаковки</th>
+                                                    <th>Сумма</th>
+                                                </tr>
+                                            </ng-template>
+                                            <ng-template pTemplate="footer">
+                                                <tr>
+                                                    <td colspan="3" class="text-right">Итого:</td>
+                                                    <td class="text-right">{{ getPackagePrice(salesItem)}}</td>
+                                                </tr>
+                                            </ng-template>
+                                            <ng-template pTemplate="body" let-salesItemPackage let-rowIndex="rowIndex">
+                                                <tr>
+                                                    <td>
+                                                        <p-button icon="pi pi-trash" styleClass="p-button-sm" (click)="removeItem(salesItem.salesItemPackages, rowIndex)" />
+                                                        <span *ngIf="getPackageType(salesItemPackage.packageTypeID) as packageType">
+                                                            {{ packageType.name }}
+                                                        </span>
+                                                    </td>
+                                                    <td [pEditableColumn]="salesItemPackage.amount" pEditableColumnField="amount" class="text-right">
+                                                        <p-cellEditor *ngIf="getPackageType(salesItemPackage.packageTypeID) as packageType">
+                                                            <ng-template pTemplate="input">
+                                                                <div class="p-inputgroup">
+                                                                    <p-inputNumber [useGrouping]="false"
+                                                                                   [minFractionDigits]="packageType.decimalPlaces" [maxFractionDigits]="packageType.decimalPlaces"
+                                                                                   [(ngModel)]="salesItemPackage.amount" />
+                                                                    <span class="p-inputgroup-addon" [innerHtml]="getUnitOfMeasure(packageType.unitOfMeasure) | safeHtml">
+                                                                    </span>
+                                                                </div>
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                <ng-container>
+                                                                    {{ salesItemPackage.amount }}<span [innerHtml]="getUnitOfMeasure(packageType.unitOfMeasure) | safeHtml"></span>
+                                                                </ng-container>
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="salesItemPackage.pricePerUom" pEditableColumnField="pricePerUom" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <div class="p-inputgroup">
+                                                                    <p-inputNumber [useGrouping]="false" emptyValue="empty"
+                                                                                   [minFractionDigits]="0" [maxFractionDigits]="2"
+                                                                                   [(ngModel)]="salesItemPackage.pricePerUom" />
+                                                                    <span class="p-inputgroup-addon" [innerHtml]="'&#8381;/' + getUnitOfMeasure(salesItemPackage.packageTypeID) | safeHtml"></span>
+                                                                </div>
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ salesItemPackage.pricePerUom }}&#8381;/<span [innerHtml]="getUnitOfMeasure(salesItemPackage.packageTypeID)"></span>
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ salesItemPackage.pricePerUom * salesItemPackage.amount | number : '1.2-2'}}&#8381;
+                                                    </td>
+                                                </tr>
+                                            </ng-template>
+                                        </p-table>
+                                        <p-dropdown #packageTypeDropdown styleClass="m-3" [options]="getAvailablePackageTypes(salesItem)" appendTo="body"
+                                                    (onChange)="addSalesItemPackage(salesItem, $event.value)"
+                                                    optionLabel="name" placeholder="Добавить оформление">
+                                            <ng-template let-item pTemplate="item">
+                                                <div class="flex align-items-center gap-2">
+                                                    <div [innerHTML]="item.name + ' (' + item.price + ' (&#8381;/' + getUnitOfMeasure(item.unitOfMeasure) + ')' | safeHtml"></div>
+                                                </div>
+                                            </ng-template>
+                                        </p-dropdown>
+                                    </div>
+
+                                    <div class="card m-2">
+                                        <p-dropdown #salesChannelDropdown styleClass="m-3" [options]="salesChannels | async" [autoDisplayFirst]="false" appendTo="body"
+                                                    placeholder="Добавить план продаж" (onChange)="addSalesPlan(salesItem, $event.value)"
+                                                    optionLabel="Добавить план продаж">
+                                            <ng-template let-item pTemplate="item">
+                                                <div class="flex align-items-center gap-2">
+                                                    <div>{{ item.name }}</div>
+                                                </div>
+                                            </ng-template>
+                                            <ng-template let-item pTemplate="selectedItem">Добавить план продаж</ng-template>
+                                        </p-dropdown>
+
+                                        <p-table [value]="salesItem.salesPlans">
+                                            <ng-template pTemplate="header">
+                                                <tr>
+                                                    <th>Канал продаж</th>
+                                                    <th class="text-right">Цена, &#8381;</th>
+                                                    <th class="text-right">Издержки, &#8381;/план</th>
+                                                    <th>Количество</th>
+                                                    <th class="text-right">Комиссия, %</th>
+                                                    <th class="text-right">Комиссия, &#8381;/шт</th>
+                                                    <th>Продаж в месяц</th>
+                                                    <th class="text-right">% возвратов</th>
+                                                    <th class="text-right">Возврат, &#8381;</th>
+                                                    <th class="text-right">Себестоимость, &#8381;/шт</th>
+                                                </tr>
+                                            </ng-template>
+                                            <ng-template pTemplate="body" let-item>
+                                                <tr>
+                                                    <td>
+                                                        {{ item.salesChannel.name}}
+                                                    </td>
+                                                    <td [pEditableColumn]="item.price" pEditableColumnField="price" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.price"
+                                                                               [minFractionDigits]="0" [maxFractionDigits]="2" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.price }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="item.deliveryCost" pEditableColumnField="deliveryCost" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.deliveryCost"
+                                                                               [minFractionDigits]="0" [maxFractionDigits]="2" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.deliveryCost }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="item.amount" pEditableColumnField="amount" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.amount" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.amount }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="item.commissionMultiplier" pEditableColumnField="commissionMultiplier" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.commissionMultiplier"
+                                                                               [minFractionDigits]="1" [maxFractionDigits]="1" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.commissionMultiplier }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="item.commissionAddition" pEditableColumnField="commissionAddition" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.commissionAddition"
+                                                                               [minFractionDigits]="2" [maxFractionDigits]="2" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.commissionAddition }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="item.salesPerMonth" pEditableColumnField="salesPerMonth" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.salesPerMonth" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.salesPerMonth }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="item.returnPercentage" pEditableColumnField="returnPercentage" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.returnPercentage"
+                                                                               [minFractionDigits]="1" [maxFractionDigits]="1" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.returnPercentage }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td [pEditableColumn]="item.returnCost" pEditableColumnField="returnCost" class="text-right">
+                                                        <p-cellEditor>
+                                                            <ng-template pTemplate="input">
+                                                                <p-inputNumber [useGrouping]="false" [(ngModel)]="item.returnCost"
+                                                                               [minFractionDigits]="2" [maxFractionDigits]="2" />
+                                                            </ng-template>
+                                                            <ng-template pTemplate="output">
+                                                                {{ item.returnCost }}
+                                                            </ng-template>
+                                                        </p-cellEditor>
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ getSelfCost(salesItem, item, batchItem) | number: '1.2-2' }}
+                                                    </td>
+                                                </tr>
+                                            </ng-template>
+                                        </p-table>
+                                    </div>
+                                </ng-template>
+                            </p-accordionTab>
+                        </ng-container>
+                    </ng-container>
+                </p-accordion>
+            </div>
+        </p-tabPanel>
+    </p-tabView>
+    <ng-container *ngIf="addedProduct">
+        <p-dialog header="Ошибка" [modal]="true" [style]="{ width: '50vw' }" [(visible)]="duplicateProductDialogVisible" [draggable]="false" [resizable]="false">
+            <p class="m-0">
+                {{ addedProduct.name}}
+            </p>
+        </p-dialog>
+    </ng-container>
+</div>

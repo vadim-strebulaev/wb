@@ -1,0 +1,100 @@
+<p-toast></p-toast>
+<p-table [value]="data"
+         [lazy]="true"
+         dataKey="productPackageID"
+         [tableStyle]="{ 'min-width': '75rem' }"
+         [paginator]="true"
+         [rows]="10"
+         [rowsPerPageOptions]="[10, 25, 50]"
+         [totalRecords]="totalRecords"
+         [loading]="loading"
+         [globalFilterFields]="['name']"
+         (onLazyLoad)="onDataLazyLoad($event)">
+    <ng-template pTemplate="header" let-columns>
+        <tr>
+            <th>Наименование</th>
+            <th></th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-item let-expanded="expanded">
+        <tr>
+            <td>{{item.name}}</td>
+            <td>
+                <p-button icon="pi pi-chart-bar" (click)="showBarcodeGenerator(item)"></p-button>
+                <button type="button" *ngIf="item.stocks?.length" pButton pRipple [pRowToggler]="item" class="p-button-text p-button-rounded p-button-plain" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></button>
+            </td>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="rowexpansion" let-item>
+        <tr *ngIf="item.stocks?.length">
+            <td>
+                <div>
+                    <p-table [value]="item.stocks">
+                        <ng-template pTemplate="header">
+                            <tr>
+                                <th pSortableColumn="warehouse.name">Склад <p-sortIcon field="warehouse.name"></p-sortIcon></th>
+                                <th pSortableColumn="present">Наличие <p-sortIcon field="present"></p-sortIcon></th>
+                                <th pSortableColumn="reserved">Резерв <p-sortIcon field="reserved"></p-sortIcon></th>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-item>
+                            <tr>
+                                <td>{{item.warehouse.name}}</td>
+                                <td>{{item.present}}</td>
+                                <td>{{item.reserved}}</td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+            </td>
+            <td></td>
+        </tr>
+    </ng-template>
+</p-table>
+<p-dialog header="Генерация баркода" *ngIf="selectedProductForBarcode" [modal]="true" [style]="{ width: '50vw' }" (onShow)="onShowBarcodeDialog()"
+          [(visible)]="selectedProductForBarcode" [draggable]="false" [resizable]="false">
+    <ng-template pTemplate="content">
+        <div class="card">
+            <ng-container *ngFor="let text of barcodeTexts">
+                <div class="flex">
+                    <div class="flex-auto">
+                        <label class="block font-bold" for="text">Текст</label>
+                        <input pInputText [(ngModel)]="text.text" inputId="text" />
+                    </div>
+                </div>
+                <div class="flex-auto">
+                    <label class="mb-2 block font-bold" for="fontSize">Размер шрифта</label>
+                    <p-inputNumber [(ngModel)]="text.fontSize" [showButtons]="true" inputId="fontSize" />
+                </div>
+                <div class="flex-auto">
+                    <label class="mb-2 block font-bold" for="fontWeight">Жирный</label>
+                    <p-checkbox [(ngModel)]="text.bold" [binary]="true" inputId="binary"></p-checkbox>
+                </div>
+
+            </ng-container>
+            <div>
+                <p-button icon="pi pi-plus" label="Добавить текст" (click)="addBarcodeText()" />
+            </div>
+        </div>
+        <div>
+            <svg id="barcodeImage" xmlns="http://www.w3.org/2000/svg">
+                <rect width="350em" height="600em" fill="white" />
+                <ng-container *ngFor="let text of barcodeData; index as index">
+                    <rect y="50" height="60" [attr.width]="3 * text.width" [attr.x]="text.offset * 3 + 89" fill="black" />
+                </ng-container>
+                <ng-container *ngFor="let text of barcodeTexts; index as index">
+                    <text [innerHTML]="text.text"
+                          [attr.font-weight]="text.bold ? 'bold' : 'normal'"
+                          [attr.font-size]="text.fontSize" x="50%"
+                          [attr.y]="(160 + 40 * index / barcodeTexts.length)"
+                          fill="black"
+                          text-anchor="middle"></text>
+                </ng-container>
+            </svg>
+            <a class="p-ripple p-element p-button p-component" [download]="selectedProductForBarcode.productPackageID + '.png'" (click)="downloadBarcode()">Скачать</a>
+        </div>
+    </ng-template>
+</p-dialog>
+<div class="hidden">
+    <svg id="barcode" style="display: none"></svg>
+</div>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/0.5.126-alpha">
+  <PropertyGroup>
+    <StartupCommand>npm start</StartupCommand>
+    <JavaScriptTestFramework>Jasmine</JavaScriptTestFramework>
+    <!-- Allows the build (or compile) script located on package.json to run on Build -->
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    <!-- Command to create an optimized build of the project that's ready for publishing -->
+    <ProductionBuildCommand>npm run build</ProductionBuildCommand>
+    <!-- Folder where production build objects will be placed -->
+    <BuildOutputFolder>$(MSBuildProjectDirectory)\dist\SellerFrontend</BuildOutputFolder>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NSwag.MSBuild" Version="13.20.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <Target Name="SwaggerGeneration" BeforeTargets="BeforeBuild;BeforeRebuild">
+    <PropertyGroup>
+      <ClassName>$(BaseName)Client</ClassName>
+      <ClientFile>$(ProjectDir)src\app\$(ClassName).ts</ClientFile>
+    </PropertyGroup>
+    <Exec Command="nswag run nswag.json /output:$(ClientFile)" ConsoleToMSBuild="true">
+      <Output TaskParameter="ExitCode" PropertyName="NSwagExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="NSwagOutput" />
+    </Exec>
+    <Message Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' == '0'" Importance="high" />
+    <Error Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' != '0'" Importance="high" />
+  </Target>
+</Project>

@@ -1,0 +1,90 @@
+<ng-container *ngIf="batch">
+    <h1>{{ batch.name }}</h1>
+    <p-button styleClass="mb-3" label="Пересчитать" (click)="calcPlans()" />
+    <p-button styleClass="mb-3" label="Редактировать закупку" [routerLink]="['/purchase', 'edit', {id: batch.iD} ]" />
+    <div class="card" *ngIf="batchInfo">
+        <h5>Закупка</h5>
+        <div class="grid">
+            <div class="col-12 md:col-6 xl:col-4">
+                <div class="flex justify-content-between">
+                    <span class="font-bold text-900">Сумма закупки:</span>
+                    <span>{{ batchInfo.sum }}&#8381;</span>
+                </div>
+                <div class="flex justify-content-between">
+                    <span class="font-bold text-900">Количество позиций:</span>
+                    <span>{{ batchInfo.positionCount }}</span>
+                </div>
+                <div class="flex justify-content-between">
+                    <span class="font-bold text-900">Количество товаров:</span>
+                    <span>{{ batchInfo.productCount }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" *ngIf="salesInfo">
+        <h4>Планы продаж</h4>
+        <div class="card" *ngFor="let salesChannel of salesInfo.salesChannels">
+            <h5>
+                {{ salesChannel.name }}
+            </h5>
+            <div class="grid">
+                <div *ngFor="let plan of salesChannel.plans" class="col-6 md:col-12 xl:col-4">
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Товар:</div>
+                        <div>{{ plan.name }}</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Продажи, план:</div>
+                        <div>{{ plan.plannedAmount }}шт</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Продажи, факт:</div>
+                        <div>{{ plan.soldAmount }}шт</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Продажи, план:</div>
+                        <div>{{ plan.plannedSum | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Продажи, факт:</div>
+                        <div>{{ plan.soldSum | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Комиссия, план:</div>
+                        <div>{{ plan.plannedCommissionPercent | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Комиссия, факт:</div>
+                        <div>{{ plan.commissionPercent | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Доставка, план:</div>
+                        <div>{{ plan.plannedCommissionAddition | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Доставка, факт:</div>
+                        <div>{{ plan.commissionAddition | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Возвраты, план:</div>
+                        <div>{{ plan.plannedReturnCount }}шт</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Возвраты, факт:</div>
+                        <div>{{ plan.returnCount }}шт</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Прибыль, план:</div>
+                        <div>{{ plan.plannedProfit | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                    <div class="flex justify-content-between">
+                        <div class="font-bold text-900">Прибыль, факт:</div>
+                        <div>{{ plan.profit | number: '1.2-2' }}&#8381;</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</ng-container>

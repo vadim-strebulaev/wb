@@ -1,0 +1,88 @@
+<p-toast></p-toast>
+<p-card header="Транзакции Ozon">
+    <p-calendar [(ngModel)]="dateRange" styleClass="m-1" selectionMode="range" placeholder="Период" [readonlyInput]="true"></p-calendar>
+
+    <p-button styleClass="m-1" icon="pi pi-search" label="Найти транзакции" (click)="findTransactionsClick()"></p-button>
+    <p-button styleClass="m-1" [icon]="isLoading ? 'pi pi-download' : ''" label="Импортировать транзакции" (click)="importTransactions()"></p-button>
+</p-card>
+<div class="card" *ngIf="(filteredData | async) as data">
+    <p-table [value]="data.items" [loading]="loading" responsiveLayout="stack"
+             [totalRecords]="data.totalCount"
+             [paginator]="true" [showCurrentPageReport]="false" [rows]="8" [rowsPerPageOptions]="[8, 15, 30, 50]"
+             dataKey="iD">
+        <ng-template pTemplate="caption">
+            {{data.sum | number: '1.2-2'}}
+            {{data.accrual | number: '1.2-2'}}
+            {{data.commission | number: '1.2-2'}}
+            {{data.accrual + data.commission | number: '1.2-2'}}
+        </ng-template>
+        <ng-template pTemplate="header">
+            <tr>
+                <th>ID</th>
+                <th>Дата</th>
+                <th pSortableColumn="sum">Сумма <p-sortIcon field="amount"></p-sortIcon></th>
+                <th>Сервисы</th>
+                <th></th>
+            </tr>
+            <tr>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th>
+                    <p-multiSelect [(ngModel)]="selectedServiceTypes" [options]="serviceTypes" appendTo="body" optionValue="type" optionLabel="text"
+                                   placeholder="Выбранные" (onChange)="filterData()"
+                                   [style]="{'max-width': '300px'}"/>
+                </th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-transaction let-expanded="expanded">
+            <tr [pRowToggler]="transaction">
+                <td>
+                    {{ transaction.iD }}
+                </td>
+                <td>
+                    {{ transaction.date | date:'y-MM-dd HH:mm' }}
+                </td>
+                <td>
+                    <span class="p-column-title">Сумма</span>
+                    <div>
+                        {{ transaction.amount | number: '1.2-2' }}&#8381;
+                    </div>
+                </td>
+                <td>
+                    <div *ngFor="let service of transaction.services">
+                        <div class="flex justify-content-between">
+                            <div>{{ getOperationServiceType(service.type) }}</div>
+                            <div>{{ service.price | number: '1.2-2' }}</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="rowexpansion" let-transaction>
+            <tr>
+                <td colspan="4">
+                    <h5>Сервисы операции</h5>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <p-table [value]="transaction.services" responsiveLayout="stack" [breakpoint]="'960px'" [tableStyle]="{'min-width': '50rem'}">
+                        <ng-template pTemplate="header">
+                            <tr>
+                                <th>Тип</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-service>
+                            <tr>
+                                <td>{{ getOperationServiceType(service.type) }}</td>
+                                <td>{{ service.price }}</td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
